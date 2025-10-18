@@ -13,8 +13,15 @@
 import sys
 
 import myPythonLibrary as mypy
-import dolfin_mech     as dmech
+import sys
+res_folder = sys.argv[0][:-3]
+import os
+from pathlib import Path
+local_path = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(local_path))
 
+import dolfin_mech as dmech
+sys.path.remove(str(local_path))
 ################################################################# parameters ###
 
 mat_params = {
