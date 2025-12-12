@@ -282,20 +282,20 @@ class PoroFlowHyperelasticityProblem(HyperelasticityProblem):
 
     def set_subsols_gradient_direct(self):
             
-                self.add_balanced_gravity_boundary_pressure_subsol()
-                self.add_gamma_subsol()
-                self.add_lbda_subsol()
-                self.add_mu_subsol()
-                self.add_center_gravity_direct_problem_subsol()
+        self.add_balanced_gravity_boundary_pressure_subsol()
+        self.add_gamma_subsol()
+        self.add_lbda_subsol()
+        self.add_mu_subsol()
+        self.add_center_gravity_direct_problem_subsol()
 
 
 
     def set_subsols_gradient_inverse(self):
         
-            self.add_balanced_gravity_boundary_pressure_subsol()
-            self.add_gamma_subsol()
-            self.add_lbda_subsol()
-            self.add_mu_subsol()
+        self.add_balanced_gravity_boundary_pressure_subsol()
+        self.add_gamma_subsol()
+        self.add_lbda_subsol()
+        self.add_mu_subsol()
 
 
 
@@ -316,15 +316,15 @@ class PoroFlowHyperelasticityProblem(HyperelasticityProblem):
             fs=self.get_porosity_function_space().collapse(),
             name="Phif0")
         self.add_foi(
-            expr=self.kinematics.J - self.get_porosity_subsol().subfunc,
+            expr=self.kinematics.J - self.porosity_subsol.subfunc,
             fs=self.get_porosity_function_space().collapse(),
             name="Phif")
         self.add_foi(
-            expr=self.get_porosity_subsol().subfunc/self.kinematics.J,
+            expr=self.porosity_subsol.subfunc/self.kinematics.J,
             fs=self.get_porosity_function_space().collapse(),
             name="phis")
         self.add_foi(
-            expr=1.-self.get_porosity_subsol().subfunc/self.kinematics.J,
+            expr=1.-self.porosity_subsol.subfunc/self.kinematics.J,
             fs=self.get_porosity_function_space().collapse(),
             name="phif")
 
@@ -337,7 +337,7 @@ class PoroFlowHyperelasticityProblem(HyperelasticityProblem):
 
         operator = dmech.WskelPoroOperator(
             kinematics=self.kinematics,
-            U_test=self.get_displacement_subsol().dsubtest,
+            U_test=self.displacement_subsol.dsubtest,
             Phis0=self.Phis0,
             material_parameters=material_parameters,
             material_scaling=material_scaling,
@@ -367,10 +367,10 @@ class PoroFlowHyperelasticityProblem(HyperelasticityProblem):
 
         operator = dmech.WbulkPoroOperator(
             kinematics=self.kinematics,
-            U_test=self.get_displacement_subsol().dsubtest,
+            U_test=self.displacement_subsol.dsubtest,
             Phis0=self.Phis0,
-            Phis=self.get_porosity_subsol().subfunc,
-            Phis_test=self.get_porosity_subsol().dsubtest,
+            Phis=self.porosity_subsol.subfunc,
+            Phis_test=self.porosity_subsol.dsubtest,
             material_parameters=material_parameters,
             material_scaling=material_scaling,
             measure=self.get_subdomain_measure(subdomain_id))
@@ -399,8 +399,8 @@ class PoroFlowHyperelasticityProblem(HyperelasticityProblem):
         operator = dmech.WporePoroOperator(
             kinematics=self.kinematics,
             Phis0=self.Phis0,
-            Phis=self.get_porosity_subsol().subfunc,
-            Phis_test=self.get_porosity_subsol().dsubtest,
+            Phis=self.porosity_subsol.subfunc,
+            Phis_test=self.porosity_subsol.dsubtest,
             material_parameters=material_parameters,
             material_scaling=material_scaling,
             measure=self.get_subdomain_measure(subdomain_id))
@@ -424,7 +424,7 @@ class PoroFlowHyperelasticityProblem(HyperelasticityProblem):
             **kwargs):
         
         operator = dmech.PfFieldOperator(pressure= self.get_subsol("pressure").subfunc,
-            Phis_test=self.get_porosity_subsol().dsubtest, measure= self.get_subdomain_measure(None),
+            Phis_test=self.porosity_subsol.dsubtest, measure= self.get_subdomain_measure(None),
             **kwargs)
         self.add_operator(
             operator=operator,
@@ -438,7 +438,7 @@ class PoroFlowHyperelasticityProblem(HyperelasticityProblem):
     #         **kwargs):
 
     #     operator = dmech.PfPoroOperator(
-    #         Phis_test=self.get_porosity_subsol().dsubtest,
+    #         Phis_test=self.porosity_subsol.dsubtest,
     #         **kwargs)
     #     self.add_operator(
     #         operator=operator,
@@ -509,15 +509,15 @@ class PoroFlowHyperelasticityProblem(HyperelasticityProblem):
             x = self.x,
             x0 = self.get_center_gravity(),
             n = self.mesh_normals,
-            u_test = self.get_displacement_subsol().dsubtest, 
-            lbda = self.get_lbda_subsol().subfunc,
-            lbda_test = self.get_lbda_subsol().dsubtest,
-            p = self.get_balanced_gravity_boundary_pressure_subsol().subfunc,
-            p_test = self.get_balanced_gravity_boundary_pressure_subsol().dsubtest,
-            gamma = self.get_gamma_subsol().subfunc,
-            gamma_test = self.get_gamma_subsol().dsubtest,
-            mu = self.get_mu_subsol().subfunc,
-            mu_test= self.get_mu_subsol().dsubtest,
+            u_test = self.displacement_subsol.dsubtest, 
+            lbda = self.lbda_subsol.subfunc,
+            lbda_test = self.lbda_subsol.dsubtest,
+            p = self.balanced_gravity_boundary_pressure_subsol.subfunc,
+            p_test = self.balanced_gravity_boundary_pressure_subsol.dsubtest,
+            gamma = self.gamma_subsol.subfunc,
+            gamma_test = self.gamma_subsol.dsubtest,
+            mu = self.mu_subsol.subfunc,
+            mu_test= self.mu_subsol.dsubtest,
             **kwargs)
         return self.add_operator(operator=operator, k_step=k_step)
 
@@ -529,19 +529,19 @@ class PoroFlowHyperelasticityProblem(HyperelasticityProblem):
 
         operator = dmech.PressureBalancingGravityLoadingOperator(
             X=self.X,
-            x0=self.get_center_gravity_direct_problem_subsol().subfunc,
-            x0_test=self.get_center_gravity_direct_problem_subsol().dsubtest,
-            lbda=self.get_lbda_subsol().subfunc,
-            lbda_test=self.get_lbda_subsol().dsubtest,
-            mu=self.get_mu_subsol().subfunc,
-            mu_test=self.get_mu_subsol().dsubtest,
-            p = self.get_balanced_gravity_boundary_pressure_subsol().subfunc,
-            p_test = self.get_balanced_gravity_boundary_pressure_subsol().dsubtest,
-            gamma = self.get_gamma_subsol().subfunc,
-            gamma_test = self.get_gamma_subsol().dsubtest,
+            x0=self.center_gravity_direct_problem_subsol.subfunc,
+            x0_test=self.center_gravity_direct_problem_subsol.dsubtest,
+            lbda=self.lbda_subsol.subfunc,
+            lbda_test=self.lbda_subsol.dsubtest,
+            mu=self.mu_subsol.subfunc,
+            mu_test=self.mu_subsol.dsubtest,
+            p = self.balanced_gravity_boundary_pressure_subsol.subfunc,
+            p_test = self.balanced_gravity_boundary_pressure_subsol.dsubtest,
+            gamma = self.gamma_subsol.subfunc,
+            gamma_test = self.gamma_subsol.dsubtest,
             kinematics=self.kinematics,
-            U=self.get_displacement_subsol().subfunc,
-            U_test=self.get_displacement_subsol().dsubtest,
+            U=self.displacement_subsol.subfunc,
+            U_test=self.displacement_subsol.dsubtest,
             Phis0=self.Phis0,
             N=self.mesh_normals,
             **kwargs)
@@ -553,19 +553,19 @@ class PoroFlowHyperelasticityProblem(HyperelasticityProblem):
 
         self.add_qoi(
             name=self.get_porosity_name(),
-            expr=self.get_porosity_subsol().subfunc * self.dV)
+            expr=self.porosity_subsol.subfunc * self.dV)
 
         self.add_qoi(
             name="Phif",
-            expr=(self.kinematics.J - self.get_porosity_subsol().subfunc) * self.dV)
+            expr=(self.kinematics.J - self.porosity_subsol.subfunc) * self.dV)
             
         self.add_qoi(
             name="phis",
-            expr=(self.get_porosity_subsol().subfunc/self.kinematics.J) * self.dV)
+            expr=(self.porosity_subsol.subfunc/self.kinematics.J) * self.dV)
             
         self.add_qoi(
             name="phif",
-            expr=(1. - self.get_porosity_subsol().subfunc/self.kinematics.J) * self.dV)
+            expr=(1. - self.porosity_subsol.subfunc/self.kinematics.J) * self.dV)
         
 
     

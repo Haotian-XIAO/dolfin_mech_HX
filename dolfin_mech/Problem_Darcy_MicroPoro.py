@@ -142,13 +142,13 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
                 self.set_solution_function_space()
             self.set_solution_functions()
 
-            self.U_bar      = dolfin.dot(self.get_macroscopic_stretch_subsol().subfunc , self.X-self.X_0)
-            self.U_bar_old  = dolfin.dot(self.get_macroscopic_stretch_subsol().func_old, self.X-self.X_0)
-            self.U_bar_test = dolfin.dot(self.get_macroscopic_stretch_subsol().dsubtest, self.X-self.X_0)
+            self.U_bar      = dolfin.dot(self.macroscopic_stretch_subsol.subfunc , self.X-self.X_0)
+            self.U_bar_old  = dolfin.dot(self.macroscopic_stretch_subsol.func_old, self.X-self.X_0)
+            self.U_bar_test = dolfin.dot(self.macroscopic_stretch_subsol.dsubtest, self.X-self.X_0)
 
-            self.U_tot      = self.U_bar      + self.get_displacement_perturbation_subsol().subfunc
-            self.U_tot_old  = self.U_bar_old  + self.get_displacement_perturbation_subsol().func_old
-            self.U_tot_test = self.U_bar_test + self.get_displacement_perturbation_subsol().dsubtest
+            self.U_tot      = self.U_bar      + self.displacement_perturbation_subsol.subfunc
+            self.U_tot_old  = self.U_bar_old  + self.displacement_perturbation_subsol.func_old
+            self.U_tot_test = self.U_bar_test + self.displacement_perturbation_subsol.dsubtest
 
             self.set_quadrature_degree(
                 quadrature_degree=quadrature_degree)
@@ -268,15 +268,15 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
             fs=self.get_porosity_function_space().collapse(),
             name="Phif0")
         self.add_foi(
-            expr=self.kinematics.J - self.get_porosity_subsol().subfunc,
+            expr=self.kinematics.J - self.porosity_subsol.subfunc,
             fs=self.get_porosity_function_space().collapse(),
             name="Phif")
         self.add_foi(
-            expr=self.get_porosity_subsol().subfunc/self.kinematics.J,
+            expr=self.porosity_subsol.subfunc/self.kinematics.J,
             fs=self.get_porosity_function_space().collapse(),
             name="phis")
         self.add_foi(
-            expr=1.-self.get_porosity_subsol().subfunc/self.kinematics.J,
+            expr=1.-self.porosity_subsol.subfunc/self.kinematics.J,
             fs=self.get_porosity_function_space().collapse(),
             name="phif")
 
@@ -287,8 +287,8 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
 
         operator = WskelPoroOperator(
             kinematics=self.kinematics,
-            U=self.get_displacement_perturbation_subsol().subfunc,
-            U_test=self.get_displacement_perturbation_subsol().dsubtest,
+            U=self.displacement_perturbation_subsol.subfunc,
+            U_test=self.displacement_perturbation_subsol.dsubtest,
             Phis0=self.Phis0,
             material_parameters=material_parameters,
             material_scaling=material_scaling,
@@ -317,11 +317,11 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
 
         operator = WbulkPoroFlowOperator(
             kinematics=self.kinematics,
-            U=self.get_displacement_perturbation_subsol().subfunc,
-            U_test=self.get_displacement_perturbation_subsol().dsubtest,
+            U=self.displacement_perturbation_subsol.subfunc,
+            U_test=self.displacement_perturbation_subsol.dsubtest,
             Phis0=self.Phis0,
-            Phis=self.get_porosity_subsol().subfunc,
-            Phis_test=self.get_porosity_subsol().dsubtest,
+            Phis=self.porosity_subsol.subfunc,
+            Phis_test=self.porosity_subsol.dsubtest,
             material_parameters=material_parameters,
             material_scaling=material_scaling,
             measure=self.get_subdomain_measure(subdomain_id),
@@ -351,7 +351,7 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
             **kwargs):
         
         operator = PfFieldOperator(pressure= self.get_subsol("pressure").subfunc,
-            Phis_test=self.get_porosity_subsol().dsubtest, measure= self.get_subdomain_measure(None),
+            Phis_test=self.porosity_subsol.dsubtest, measure= self.get_subdomain_measure(None),
             **kwargs)
         self.add_operator(
             operator=operator,
@@ -364,7 +364,7 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
     #         **kwargs):
 
     #     operator = dmech.PfPoroOperator(
-    #         Phis_test=self.get_porosity_subsol().dsubtest,measure= self.get_subdomain_measure(None),
+    #         Phis_test=self.porosity_subsol.dsubtest,measure= self.get_subdomain_measure(None),
     #         **kwargs)
     #     self.add_operator(
     #         operator=operator,
@@ -646,8 +646,8 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
             solid_behavior_parameters):
 
         operator = dmech.HyperElasticityOperator(
-            U=self.get_displacement_perturbation_subsol().subfunc,
-            U_test=self.get_displacement_perturbation_subsol().dsubtest,
+            U=self.displacement_perturbation_subsol.subfunc,
+            U_test=self.displacement_perturbation_subsol.dsubtest,
             kinematics=self.kinematics,
             material_model=solid_behavior_model,
             material_parameters=solid_behavior_parameters,
@@ -664,7 +664,7 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
             **kwargs):
 
         operator = dmech.MacroscopicStretchSymmetryPenaltyOperator(
-            U_bar=self.get_macroscopic_stretch_subsol().subfunc,
+            U_bar=self.macroscopic_stretch_subsol.subfunc,
             sol=self.sol_func,
             sol_test=self.dsol_test,
             measure=self.dV,
@@ -678,8 +678,8 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
             **kwargs):
 
         operator = dmech.MacroscopicStretchComponentPenaltyOperator(
-            U_bar=self.get_macroscopic_stretch_subsol().subfunc,
-            U_bar_test=self.get_macroscopic_stretch_subsol().dsubtest,
+            U_bar=self.macroscopic_stretch_subsol.subfunc,
+            U_bar_test=self.macroscopic_stretch_subsol.dsubtest,
             measure=self.dV,
             **kwargs)
         return self.add_operator(operator, k_step=k_step)
@@ -696,8 +696,8 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
                 break
 
         operator = dmech.MacroscopicStressComponentConstraintOperator(
-            U_bar=self.get_macroscopic_stretch_subsol().subfunc,
-            U_bar_test=self.get_macroscopic_stretch_subsol().dsubtest,
+            U_bar=self.macroscopic_stretch_subsol.subfunc,
+            U_bar_test=self.macroscopic_stretch_subsol.dsubtest,
             kinematics=self.kinematics,
             material=material,
             V0=self.V0,
@@ -714,7 +714,7 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
             **kwargs):
 
         operator = dmech.SurfacePressureLoadingOperator(
-            U_test=self.get_displacement_perturbation_subsol().dsubtest,
+            U_test=self.displacement_perturbation_subsol.dsubtest,
             kinematics=self.kinematics,
             N=self.mesh_normals,
             **kwargs)
@@ -736,9 +736,9 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
             k_step=None):
 
         operator = dmech.DeformedTotalVolumeOperator(
-            v=self.get_deformed_total_volume_subsol().subfunc,
-            v_test=self.get_deformed_total_volume_subsol().dsubtest,
-            U_bar=self.get_macroscopic_stretch_subsol().subfunc,
+            v=self.deformed_total_volume_subsol.subfunc,
+            v_test=self.deformed_total_volume_subsol.dsubtest,
+            U_bar=self.macroscopic_stretch_subsol.subfunc,
             V0=self.V0,
             measure=self.dV)
         self.add_operator(operator=operator, k_step=k_step)
@@ -749,8 +749,8 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
             k_step=None):
 
         operator = dmech.DeformedSolidVolumeOperator(
-            vs=self.get_deformed_solid_volume_subsol().subfunc,
-            vs_test=self.get_deformed_solid_volume_subsol().dsubtest,
+            vs=self.deformed_solid_volume_subsol.subfunc,
+            vs_test=self.deformed_solid_volume_subsol.dsubtest,
             J=self.kinematics.J,
             Vs0=self.mesh_V0,
             measure=self.dV)
@@ -762,8 +762,8 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
             k_step=None):
 
         operator = dmech.DeformedFluidVolumeOperator(
-            vf=self.get_deformed_fluid_volume_subsol().subfunc,
-            vf_test=self.get_deformed_fluid_volume_subsol().dsubtest,
+            vf=self.deformed_fluid_volume_subsol.subfunc,
+            vf_test=self.deformed_fluid_volume_subsol.dsubtest,
             kinematics=self.kinematics,
             N=self.mesh_normals,
             dS=self.dS,
@@ -779,8 +779,8 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
             **kwargs):
 
         operator = dmech.DeformedSurfaceAreaOperator(
-            S_area = self.get_surface_area_subsol().subfunc,
-            S_area_test = self.get_surface_area_subsol().dsubtest,
+            S_area = self.surface_area_subsol.subfunc,
+            S_area_test = self.surface_area_subsol.dsubtest,
             kinematics=self.kinematics,
             N=self.mesh_normals,
             **kwargs)
@@ -836,7 +836,7 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
 
     def add_deformed_fluid_volume_qoi(self):
 
-        U_bar = self.get_macroscopic_stretch_subsol().subfunc
+        U_bar = self.macroscopic_stretch_subsol.subfunc
         I_bar = dolfin.Identity(self.dim)
         F_bar = I_bar + U_bar
         J_bar = dolfin.det(F_bar)
@@ -850,7 +850,7 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
 
     def add_deformed_volume_qoi(self):
 
-        U_bar = self.get_macroscopic_stretch_subsol().subfunc
+        U_bar = self.macroscopic_stretch_subsol.subfunc
         I_bar = dolfin.Identity(self.dim)
         F_bar = I_bar + U_bar
         J_bar = dolfin.det(F_bar)
@@ -935,7 +935,7 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
                 material = operator.material
                 break
 
-        U_bar = self.get_macroscopic_stretch_subsol().subfunc
+        U_bar = self.macroscopic_stretch_subsol.subfunc
         I_bar = dolfin.Identity(self.dim)
         F_bar = I_bar + U_bar
         J_bar = dolfin.det(F_bar)
@@ -982,7 +982,7 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
                 material = operator.material
                 break
 
-        U_bar = self.get_macroscopic_stretch_subsol().subfunc
+        U_bar = self.macroscopic_stretch_subsol.subfunc
         I_bar = dolfin.Identity(self.dim)
         F_bar = I_bar + U_bar
         J_bar = dolfin.det(F_bar)
@@ -1024,7 +1024,7 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
                 tv_pf = operator.tv_pf
                 break
 
-        U_bar = self.get_macroscopic_stretch_subsol().subfunc
+        U_bar = self.macroscopic_stretch_subsol.subfunc
         I_bar = dolfin.Identity(self.dim)
         F_bar = I_bar + U_bar
         J_bar = dolfin.det(F_bar)
