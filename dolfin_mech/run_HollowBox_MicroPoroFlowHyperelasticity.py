@@ -165,7 +165,8 @@ def run_HollowBox_MicroPoroFlow(
 
 
     ################################################################ Problem ###
-
+    print("mesh dim =", mesh.geometry().dim())
+    print(mesh)
     problem = MicroPoroDarcyProblem(
         mesh=mesh,
         domains_mf = domains_mf,
@@ -395,8 +396,8 @@ for dim in dim_lst:
 
         load_lst  = [                     ]
         load_lst += ["internal_pressure"  ]
-        load_lst += ["macroscopic_stretch"]
-        load_lst += ["macroscopic_stress" ]
+        #load_lst += ["macroscopic_stretch"]
+        #load_lst += ["macroscopic_stress" ]
         for load in load_lst:
 
             print("dim =",dim)

@@ -21,6 +21,7 @@ from .Problem_Hyperelasticity import HyperelasticityProblem
 from .Operator_DarcyFlow import DarcyFlowOperator,PfFieldOperator
 from .Operator_WbulkPoroFlow import WbulkPoroFlowOperator
 from .Operator_Poro_Wskel import WskelPoroOperator
+from .Problem                 import Problem
 ################################################################################
 
 class MicroPoroDarcyProblem(HyperelasticityProblem):
@@ -44,8 +45,8 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
             ####New parameters#########
             ##########################
             ): # "kubc" or "pbc"
-
-        HyperelasticityProblem.__init__(self)
+        
+        Problem.__init__(self)
 
                 ##################################  
         ### Poro Materials Parameters            ###
@@ -459,134 +460,68 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
     
 ####################################################################################        
 
-    def get_macroscopic_stretch_name(self):
-
-        return "U_bar"
-
     def add_macroscopic_stretch_subsol(self,
             degree=0,
             symmetry=None,
             init_val=None):
 
-        self.add_tensor_subsol(
-            name=self.get_macroscopic_stretch_name(),
+        self.macroscopic_stretch_subsol = self.add_tensor_subsol(
+            name="U_bar",
             family="R",
             degree=degree,
             symmetry=symmetry,
             init_val=init_val)
 
-    def get_macroscopic_stretch_subsol(self):
-
-        return self.get_subsol(self.get_macroscopic_stretch_name())
-
-    def get_macroscopic_stretch_function_space(self):
-
-        return self.get_subsol_function_space(name=self.get_macroscopic_stretch_name())
-
-
-
-    def get_displacement_perturbation_name(self):
-
-        return "U_tilde"
 
     def add_displacement_perturbation_subsol(self,
             degree):
 
         self.displacement_perturbation_degree = degree
-        self.add_vector_subsol(
-            name=self.get_displacement_perturbation_name(),
+        self.displacement_perturbation_subsol = self.add_vector_subsol(
+            name="U_tilde",
             family="CG",
             degree=self.displacement_perturbation_degree)
 
-    def get_displacement_perturbation_subsol(self):
-
-        return self.get_subsol(self.get_displacement_perturbation_name())
-
-    def get_displacement_perturbation_function_space(self):
-
-        return self.get_subsol_function_space(name=self.get_displacement_perturbation_name())
-
-
-
-
-    def get_deformed_total_volume_name(self):
-
-        return "v"
 
     def add_deformed_total_volume_subsol(self):
 
-        self.add_scalar_subsol(
-            name=self.get_deformed_total_volume_name(),
+        self.deformed_total_volume_subsol = self.add_scalar_subsol(
+            name="v",
             family="R",
             degree=0,
             init_val=self.V0)
 
-    def get_deformed_total_volume_subsol(self):
 
-        return self.get_subsol(self.get_deformed_total_volume_name())
-
-
-
-    def get_deformed_solid_volume_name(self):
-
-        return "v_s"
 
     def add_deformed_solid_volume_subsol(self):
 
-        self.add_scalar_subsol(
-            name=self.get_deformed_solid_volume_name(),
+        self.deformed_solid_volume_subsol = self.add_scalar_subsol(
+            name="v_s",
             family="R",
             degree=0,
             init_val=self.mesh_V0)
 
-    def get_deformed_solid_volume_subsol(self):
 
-        return self.get_subsol(self.get_deformed_solid_volume_name())
-
-
-
-    def get_deformed_fluid_volume_name(self):
-
-        return "v_f"
 
     def add_deformed_fluid_volume_subsol(self):
 
-        self.add_scalar_subsol(
-            name=self.get_deformed_fluid_volume_name(),
+        self.deformed_fluid_volume_subsol = self.add_scalar_subsol(
+            name="v_f",
             family="R",
             degree=0,
             init_val=self.Vf0)
 
-    def get_deformed_fluid_volume_subsol(self):
 
-        return self.get_subsol(self.get_deformed_fluid_volume_name())
-    
-
-    def get_surface_area_name(self):
-
-        return "S_area"
 
     def add_surface_area_subsol(self,
             degree=0,
             init_val=None):
             
-        self.add_scalar_subsol(
-            name=self.get_surface_area_name(),
+        self.surface_area_subsol = self.add_scalar_subsol(
+            name="S_area",
             family="R",
             degree=degree,
             init_val=init_val)
-
-
-    def get_surface_area_subsol(self):
-
-        return self.get_subsol(self.get_surface_area_name())
-
-    def get_surface_area_space(self):
-
-        return self.get_subsol_function_space(name=self.get_surface_area_name())
-
-
-
 
     def set_subsols(self,
             displacement_perturbation_degree=None,

@@ -1,0 +1,10 @@
+k_step = 1
+ |  k_t = 1
+ |   |  dt = 0.01
+ |   |  t = 0.01
+ |   |  t_step = 0.01
+ |   |  k_iter = 1
+ |   |   |  Assembly… 1.8669776916503906 s
+ |   |   |  res_norm      = 1.2027e+00
+ |   |   |  Solve…Warning! Linear solver failed!
+ |   |  Warning! Time integrator failed to move forward!

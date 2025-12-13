@@ -43,7 +43,7 @@ class Problem():
             define_facet_normals=False,
             compute_bbox=False,
             compute_local_cylindrical_basis=False):
-
+        
         self.dim = mesh.ufl_domain().geometric_dimension()
 
         self.mesh = mesh
