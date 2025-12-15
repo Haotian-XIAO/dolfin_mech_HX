@@ -165,17 +165,38 @@ def run_HollowBox_MicroPoroFlow(
 
 
     ################################################################ Problem ###
-    print("mesh dim =", mesh.geometry().dim())
-    print(mesh)
+
+    if (type(mat_params) == list):
+        skel_behavior = None
+        skel_behaviors = mat_params
+        bulk_behavior = None
+        bulk_behaviors = mat_params
+        pore_behavior = None
+        pore_behaviors = mat_params
+    else:
+        skel_behavior = mat_params
+        skel_behaviors = []
+        bulk_behavior = mat_params
+        bulk_behaviors = []
+        pore_behavior = mat_params
+        pore_behaviors = []
+
+
     problem = MicroPoroDarcyProblem(
         mesh=mesh,
         domains_mf = domains_mf,
+        porosity_init_val=0.5,
         mesh_bbox=bbox,
         vertices=vertices,
         boundaries_mf=boundaries_mf,
         displacement_perturbation_degree=displacement_perturbation_degree,
         quadrature_degree=quadrature_degree,
-        solid_behavior=mat_params,
+        skel_behavior=skel_behavior,
+        skel_behaviors=skel_behaviors,
+        bulk_behavior=bulk_behavior,
+        bulk_behaviors=bulk_behaviors,
+        pore_behavior=pore_behavior,
+        pore_behaviors=pore_behaviors,
         bcs=bcs)
     
 

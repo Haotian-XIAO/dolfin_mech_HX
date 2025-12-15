@@ -37,19 +37,27 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
             boundaries_mf=None,
             points_mf=None,
             displacement_perturbation_degree=None,
+            porosity_known="Phis0",
+            porosity_degree=None,
+            porosity_init_val=None,
+            porosity_init_fun=None,
             solid_pressure_degree=None,
             quadrature_degree=None,
             foi_degree=0,
-            solid_behavior=None,
+            skel_behavior=None,
+            skel_behaviors=[],
+            bulk_behavior=None,
+            bulk_behaviors=[],
+            pore_behavior=None,
+            pore_behaviors=[],
             bcs="kubc",
-            ####New parameters#########
-            ##########################
+            w_pressure_balancing_gravity=0
             ): # "kubc" or "pbc"
         
         Problem.__init__(self)
 
                 ##################################  
-        ### Poro Materials Parameters            ###
+        ## Poro Materials Parameters            ###
         mat_params = {
                 "alpha":0.16,
                 "gamma":0.5,
@@ -69,217 +77,254 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
         pore_behavior=mat_params["pore"]
         
         
-        porosity_params={
-            "type": "constant",  # can be "constant", "function_constant", or "random"
-            "val": 0.5
-        }
-        poro_type = porosity_params.get("type", "constant")
-        poro_val = porosity_params.get("val", 0.5)
-        porosity_fun = None
-        poro_fs = dolfin.FunctionSpace(mesh, 'DG', 0)
-        porosity_fun = dolfin.Function(poro_fs)
-        porosity_fun.vector()[:] = poro_val
-        poro_val = None
+        # porosity_params={
+        #     "type": "constant",  # can be "constant", "function_constant", or "random"
+        #     "val": 0.5
+        # }
+        # poro_type = porosity_params.get("type", "constant")
+        # poro_val = porosity_params.get("val", 0.5)
+        # porosity_fun = None
+        # poro_fs = dolfin.FunctionSpace(mesh, 'DG', 0)
+        # porosity_fun = dolfin.Function(poro_fs)
+        # porosity_fun.vector()[:] = poro_val
+        # poro_val = None
 
-        define_facet_normals=True
-        displacement_degree=1
-        porosity_degree=None
-        porosity_init_val=poro_val
-        porosity_init_fun=porosity_fun
-        #skel_behavior=None
-        skel_behaviors=[]
-        #bulk_behavior=None
-        bulk_behaviors=[]
-        #pore_behavior=None
-        pore_behaviors=[]
-        gradient_operators=None
+        # define_facet_normals=True
+        # displacement_degree=1
+        # porosity_degree=None
+        # porosity_init_val=poro_val
+        # porosity_init_fun=porosity_fun
+        # #skel_behavior=None
+        # skel_behaviors=[]
+        # #bulk_behavior=None
+        # bulk_behaviors=[]
+        # #pore_behavior=None
+        # pore_behaviors=[]
+        # gradient_operators=None
         ##########################################      
         ############### Poro Materials Operators ################
 
         self.w_solid_incompressibility = w_solid_incompressibility
         self.vertices = vertices
-        if (mesh is not None):
-            self.set_mesh(
-                mesh=mesh,
-                define_spatial_coordinates=1,
-                define_facet_normals=1,
-                compute_bbox=(mesh_bbox is None))
-            self.X_0 = [0.]*self.dim
-            for k_dim in range(self.dim):
-                self.X_0[k_dim] = dolfin.assemble(self.X[k_dim] * self.dV)/self.mesh_V0
-            self.X_0 = dolfin.Constant(self.X_0)
-            if (mesh_bbox is not None):
-                self.mesh_bbox = mesh_bbox
-            d = [0]*self.dim
-            for k_dim in range(self.dim):
-                d[k_dim] = self.mesh_bbox[2*k_dim+1] - self.mesh_bbox[2*k_dim+0]
-
-            self.V0 = numpy.prod(d) 
-            self.Vs0 = self.mesh_V0
-            self.Vf0 = self.V0 - self.Vs0
-
-            self.set_measures(
-                domains=domains_mf,
-                boundaries=boundaries_mf,
-                points=points_mf)
-            
-            self.set_subsols(
-                displacement_perturbation_degree=displacement_perturbation_degree,
-                solid_pressure_degree=solid_pressure_degree,
-                porosity_degree=porosity_degree,
-                porosity_init_val=porosity_init_val,
-                porosity_init_fun=porosity_init_fun)
-            
-            self.add_scalar_subsol(
-                name="pressure",
-                family="CG",
-                degree=1)
-            self.set_solution_finite_element()
-            if (bcs == "pbc"):
-                periodic_sd = dmech.PeriodicSubDomain(self.dim, self.mesh_bbox, self.vertices)
-                #V_pressure = dolfin.FunctionSpace(mesh, "CG", 1, constrained_domain=periodic_sd)
-                self.set_solution_function_space(constrained_domain=periodic_sd)
-            else:
-                self.set_solution_function_space()
-            self.set_solution_functions()
-
-            self.U_bar      = dolfin.dot(self.macroscopic_stretch_subsol.subfunc , self.X-self.X_0)
-            self.U_bar_old  = dolfin.dot(self.macroscopic_stretch_subsol.func_old, self.X-self.X_0)
-            self.U_bar_test = dolfin.dot(self.macroscopic_stretch_subsol.dsubtest, self.X-self.X_0)
-
-            self.U_tot      = self.U_bar      + self.displacement_perturbation_subsol.subfunc
-            self.U_tot_old  = self.U_bar_old  + self.displacement_perturbation_subsol.func_old
-            self.U_tot_test = self.U_bar_test + self.displacement_perturbation_subsol.dsubtest
-
-            self.set_quadrature_degree(
-                quadrature_degree=quadrature_degree)
-
-            self.set_foi_finite_elements_DG(
-                degree=foi_degree)
-            self.set_foi_function_spaces()
-
-            self.add_foi(
-                expr=self.U_bar,
-                fs=self.get_displacement_perturbation_function_space().collapse(),
-                name="U_bar",
-                update_type="project")
-            self.add_foi(
-                expr=self.U_tot,
-                fs=self.get_displacement_perturbation_function_space().collapse(),
-                name="U_tot",
-                update_type="project")
-
-            self.set_kinematics()
-
-            # self.add_elasticity_operator(
-            #     solid_behavior_model=solid_behavior["model"],
-            #     solid_behavior_parameters=solid_behavior["parameters"])
-            # if (self.w_solid_incompressibility):
-            #     self.add_hydrostatic_pressure_operator()
-            #     self.add_incompressibility_operator()
 
 
-            assert (porosity_init_val is None) or (porosity_init_fun is None)
-            self.init_known_porosity(
-                porosity_init_val=porosity_init_val,
-                porosity_init_fun=porosity_init_fun)
+        self.set_mesh(
+            mesh=mesh,
+            define_spatial_coordinates=1,
+            define_facet_normals=1,
+            compute_bbox=(mesh_bbox is None))
+        self.X_0 = [0.]*self.dim
+        for k_dim in range(self.dim):
+            self.X_0[k_dim] = dolfin.assemble(self.X[k_dim] * self.dV)/self.mesh_V0
+        self.X_0 = dolfin.Constant(self.X_0)
+        if (mesh_bbox is not None):
+            self.mesh_bbox = mesh_bbox
+        d = [0]*self.dim
+        for k_dim in range(self.dim):
+            d[k_dim] = self.mesh_bbox[2*k_dim+1] - self.mesh_bbox[2*k_dim+0]
 
-            assert (skel_behavior is     None) or (len(skel_behaviors)==0),\
-                "Cannot provide both skel_behavior & skel_behaviors. Aborting."
-            assert (skel_behavior is not None) or (len(skel_behaviors) >0),\
-                "Need to provide skel_behavior or skel_behaviors. Aborting."
-            if (skel_behavior is not None):
-                skel_behaviors = [skel_behavior]
+        self.V0 = numpy.prod(d) 
+        self.Vs0 = self.mesh_V0
+        self.Vf0 = self.V0 - self.Vs0
+
+        self.set_measures(
+            domains=domains_mf,
+            boundaries=boundaries_mf,
+            points=points_mf)
+    
+
+        assert (porosity_known in ("Phis0", "phis"))
+        self.set_known_and_unknown_porosity(porosity_known)
+
+        assert (porosity_init_val is None) or (porosity_init_fun is None)
+        self.init_known_porosity(
+            porosity_init_val=porosity_init_val,
+            porosity_init_fun=porosity_init_fun)
+        self.w_pressure_balancing_gravity = w_pressure_balancing_gravity
+        
+        self.set_subsols(
+            displacement_perturbation_degree=displacement_perturbation_degree,
+            solid_pressure_degree=solid_pressure_degree,
+            porosity_degree=porosity_degree,
+            porosity_init_val=porosity_init_val,
+            porosity_init_fun=porosity_init_fun)
+        
+        self.add_scalar_subsol(
+            name="pressure",
+            family="CG",
+            degree=1)
+        self.set_solution_finite_element()
+        if (bcs == "pbc"):
+            periodic_sd = dmech.PeriodicSubDomain(self.dim, self.mesh_bbox, self.vertices)
+            #V_pressure = dolfin.FunctionSpace(mesh, "CG", 1, constrained_domain=periodic_sd)
+            self.set_solution_function_space(constrained_domain=periodic_sd)
+        else:
+            self.set_solution_function_space()
+        self.set_solution_functions()
+
+        self.U_bar      = dolfin.dot(self.macroscopic_stretch_subsol.subfunc , self.X-self.X_0)
+        self.U_bar_old  = dolfin.dot(self.macroscopic_stretch_subsol.func_old, self.X-self.X_0)
+        self.U_bar_test = dolfin.dot(self.macroscopic_stretch_subsol.dsubtest, self.X-self.X_0)
+
+        self.U_tot      = self.U_bar      + self.displacement_perturbation_subsol.subfunc
+        self.U_tot_old  = self.U_bar_old  + self.displacement_perturbation_subsol.func_old
+        self.U_tot_test = self.U_bar_test + self.displacement_perturbation_subsol.dsubtest
+
+        self.set_quadrature_degree(
+            quadrature_degree=quadrature_degree)
+
+        self.set_foi_finite_elements_DG(
+            degree=foi_degree)
+        self.set_foi_function_spaces()
+
+        self.add_foi(
+            expr=self.U_bar,
+            fs=self.displacement_perturbation_subsol.fs.collapse(),
+            name="U_bar",
+            update_type="project")
+        self.add_foi(
+            expr=self.U_tot,
+            fs=self.displacement_perturbation_subsol.fs.collapse(),
+            name="U_tot",
+            update_type="project")
+
+        self.set_kinematics()
+        self.set_porosity_fields()
+        self.add_local_porosity_fois()
 
 
-            self.add_Wskel_operators(skel_behaviors)
+        assert (skel_behavior is     None) or (len(skel_behaviors)==0),\
+            "Cannot provide both skel_behavior & skel_behaviors. Aborting."
+        assert (skel_behavior is not None) or (len(skel_behaviors) >0),\
+            "Need to provide skel_behavior or skel_behaviors. Aborting."
+        if (skel_behavior is not None):
+            skel_behaviors = [skel_behavior]
+        print (skel_behaviors)
+        self.add_Wskel_operators(skel_behaviors)
 
-            assert (bulk_behavior is     None) or (len(bulk_behaviors)==0),\
-                "Cannot provide both bulk_behavior & bulk_behaviors. Aborting."
-            assert (bulk_behavior is not None) or (len(bulk_behaviors) >0),\
-                "Need to provide bulk_behavior or bulk_behaviors. Aborting."
-            if (bulk_behavior is not None):
-                bulk_behaviors = [bulk_behavior]
-            self.add_Wbulk_operators(bulk_behaviors)
+        assert (bulk_behavior is     None) or (len(bulk_behaviors)==0),\
+            "Cannot provide both bulk_behavior & bulk_behaviors. Aborting."
+        assert (bulk_behavior is not None) or (len(bulk_behaviors) >0),\
+            "Need to provide bulk_behavior or bulk_behaviors. Aborting."
+        if (bulk_behavior is not None):
+            bulk_behaviors = [bulk_behavior]
+        self.add_Wbulk_operators(bulk_behaviors)
 
-            assert (pore_behavior is None) or (len(pore_behaviors)==0),\
-                "Cannot provide both pore_behavior & pore_behaviors. Aborting."
-            if (pore_behavior is not None):
-                pore_behaviors = [pore_behavior]
-            #self.add_pf_operator( pf_ini=0.2, pf_fin=0.2,
-            #   )
-            self.add_pf_operator(
-               )
-            # self.add_Darcy_operator(
-            #      K_l=dolfin.Constant(1),
-            #      rho_l=dolfin.Constant(1),
-            #      Theta_in=dolfin.Constant(0.0),
-            #      Theta_out=dolfin.Constant(0.0))
+        assert (pore_behavior is None) or (len(pore_behaviors)==0),\
+            "Cannot provide both pore_behavior & pore_behaviors. Aborting."
+        if (pore_behavior is not None):
+            pore_behaviors = [pore_behavior]
+        self.add_Wpore_operators(pore_behaviors)
+        self.add_pf_operator(
+            )
+        # self.add_Darcy_operator(
+        #      K_l=dolfin.Constant(1),
+        #      rho_l=dolfin.Constant(1),
+        #      Theta_in=dolfin.Constant(0.0),
+        #      Theta_out=dolfin.Constant(0.0))
 
 
-            # self.add_Darcy_operator(kinematics=self.kinematics,
-            #     K_l=dolfin.Constant(1.0) * dolfin.Identity(2),
-            #     rho_l=dolfin.Constant(1),
-            #     Theta_in=dolfin.Constant(1000000000000.0),
-            #     Theta_out=dolfin.Constant(1000.0),
-            #     subdomain_id=None,    # where grad(p)·grad(p) is integrated
-            #     inlet_id=3,
-            #     outlet_id=4)
-
+        # self.add_Darcy_operator(kinematics=self.kinematics,
+        #     K_l=dolfin.Constant(1.0) * dolfin.Identity(2),
+        #     rho_l=dolfin.Constant(1),
+        #     Theta_in=dolfin.Constant(1000000000000.0),
+        #     Theta_out=dolfin.Constant(1000.0),
+        #     subdomain_id=None,    # where grad(p)·grad(p) is integrated
+        #     inlet_id=3,
+        #     outlet_id=4)
 
 
 
 
-            ##################################
 
-            # self.add_macroscopic_stretch_symmetry_operator()
-            self.add_macroscopic_stretch_symmetry_penalty_operator(pen_val=1e6)
+        ##################################
 
-            # self.add_deformed_total_volume_operator()
-            # self.add_deformed_solid_volume_operator()
-            # self.add_deformed_fluid_volume_operator()
+        # self.add_macroscopic_stretch_symmetry_operator()
+        self.add_macroscopic_stretch_symmetry_penalty_operator(pen_val=1e6)
 
-            if (bcs == "kubc"):
-                self.add_kubc()
-            elif (bcs == "pbc"):
-                pinpoint_sd = dmech.PinpointSubDomain(coords=mesh.coordinates()[-1], tol=1e-3)
-                self.add_constraint(
-                    V=self.get_displacement_perturbation_function_space(), 
-                    val=[0.]*self.dim,
-                    sub_domain=pinpoint_sd,
-                    method='pointwise')
+        # self.add_deformed_total_volume_operator()
+        # self.add_deformed_solid_volume_operator()
+        # self.add_deformed_fluid_volume_operator()
+
+        if (bcs == "kubc"):
+            self.add_kubc()
+        elif (bcs == "pbc"):
+            pinpoint_sd = dmech.PinpointSubDomain(coords=mesh.coordinates()[-1], tol=1e-3)
+            self.add_constraint(
+                V=self.get_displacement_perturbation_function_space(), 
+                val=[0.]*self.dim,
+                sub_domain=pinpoint_sd,
+                method='pointwise')
                 
 
 ################################################################################
 # porosity functions ################################################################################
+    def set_known_and_unknown_porosity(self,
+            porosity_known):
+        print("[DBG] Setting known porosity to", porosity_known)
+        self.porosity_known = porosity_known
+        if (self.porosity_known == "Phis0"):
+            self.porosity_unknown = "Phis"
+            
+        elif (self.porosity_known == "phis"):
+            self.porosity_unknown = "Phis0"
+
+
+
     def init_known_porosity(self,
             porosity_init_val,
             porosity_init_fun):
+        
+        
+        print(porosity_init_val,porosity_init_fun)
 
-        if   (porosity_init_val   is not None):
-            self.Phis0 = dolfin.Constant(porosity_init_val)
+        if   (porosity_init_val is not None):
+            setattr(self, self.porosity_known, dolfin.Constant(porosity_init_val))
         elif (porosity_init_fun is not None):
-            self.Phis0 = porosity_init_fun
-        self.add_foi(
+            setattr(self, self.porosity_known, porosity_init_fun)
+
+    
+    def set_porosity_fields(self):
+
+        if (self.porosity_known == "Phis0"):
+            self.Phis = self.porosity_subsol.subfunc
+            self.phis = self.Phis/self.kinematics.J
+        elif (self.porosity_known == "phis"):
+            self.Phis0 = self.porosity_subsol.subfunc
+            self.Phis = self.phis*self.kinematics.J
+
+
+
+    def add_local_porosity_fois(self):
+
+        if (self.porosity_known == "Phis0"): self.add_foi(
             expr=self.Phis0,
-            fs=self.get_porosity_function_space().collapse(),
+            fs=self.porosity_subsol.fs.collapse(),
             name="Phis0")
         self.add_foi(
-            expr=1 - self.Phis0,
-            fs=self.get_porosity_function_space().collapse(),
+            expr=1. - self.Phis0,
+            fs=self.porosity_subsol.fs.collapse(),
             name="Phif0")
+
+        if (self.porosity_known == "phis"): self.add_foi(
+            expr=self.Phis,
+            fs=self.porosity_subsol.fs.collapse(),
+            name="Phis")
         self.add_foi(
-            expr=self.kinematics.J - self.porosity_subsol.subfunc,
-            fs=self.get_porosity_function_space().collapse(),
+            expr=self.kinematics.J - self.Phis,
+            fs=self.porosity_subsol.fs.collapse(),
             name="Phif")
+
         self.add_foi(
-            expr=self.porosity_subsol.subfunc/self.kinematics.J,
-            fs=self.get_porosity_function_space().collapse(),
+            expr=self.phis,
+            fs=self.porosity_subsol.fs.collapse(),
             name="phis")
         self.add_foi(
-            expr=1.-self.porosity_subsol.subfunc/self.kinematics.J,
-            fs=self.get_porosity_function_space().collapse(),
+            expr=1. - self.phis,
+            fs=self.porosity_subsol.fs.collapse(),
             name="phif")
+
+
 
     def add_Wskel_operator(self,
             material_parameters,
@@ -385,15 +430,15 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
             init_fun=None):
 
         if (degree == 0):
-            self.add_scalar_subsol(
-                name=self.get_porosity_name(),
+            self.porosity_subsol = self.add_scalar_subsol(
+                name=self.porosity_unknown,
                 family="DG",
                 degree=0,
                 init_val=init_val,
                 init_fun=init_fun)
         else:
-            self.add_scalar_subsol(
-                name=self.get_porosity_name(),
+            self.porosity_subsol = self.add_scalar_subsol(
+                name=self.porosity_unknown,
                 family="CG",
                 degree=degree,
                 init_val=init_val,
@@ -523,12 +568,76 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
             degree=degree,
             init_val=init_val)
 
+
+    def add_pressure_balancing_gravity_subsol(self,
+            degree=1):
+
+        self.pressure_balancing_gravity_subsol = self.add_scalar_subsol(
+            name="pressure_balancing_gravity",
+            family="CG",
+            degree=degree)
+    
+
+
+    def add_lmbda_subsol(self,
+            init_val=None):
+
+        self.lmbda_subsol = self.add_vector_subsol(
+            name="lmbda",
+            family="R",
+            degree=0,
+            init_val=init_val)
+
+
+
+    def add_mu_subsol(self,
+            init_val=None):
+
+        self.mu_subsol = self.add_vector_subsol(
+            name="mu",
+            family="R",
+            degree=0,
+            init_val=init_val)
+    
+
+    
+    def add_gamma_subsol(self):
+
+        self.gamma_subsol = self.add_scalar_subsol(
+            name="gamma",
+            family="R",
+            degree=0)
+    
+
+
+    def get_deformed_center_of_mass(self):
+        
+        M = dolfin.assemble(getattr(self, self.porosity_known)*self.dV)
+        center_of_mass = numpy.empty(self.dim)
+        for k_dim in range(self.dim):
+            center_of_mass[k_dim] = dolfin.assemble(getattr(self, self.porosity_known)*self.X[k_dim]*self.dV)/M
+        return center_of_mass
+
+
+
+    def add_deformed_center_of_mass_subsol(self):
+        
+        self.deformed_center_of_mass_subsol = self.add_vector_subsol(
+            name="xg",
+            family="R",
+            degree=0,
+            init_val=self.get_deformed_center_of_mass())
+
+
     def set_subsols(self,
             displacement_perturbation_degree=None,
-            solid_pressure_degree=None,
             porosity_degree=None,
             porosity_init_val=None,
-            porosity_init_fun=None):
+            porosity_init_fun=None,
+            solid_pressure_degree=None):
+        
+
+    
 
         self.add_macroscopic_stretch_subsol(
             symmetry=None) # MG20220425: True does not work, cf. https://fenicsproject.discourse.group/t/writing-symmetric-tensor-function-fails/1136/2 & https://bitbucket.org/fenics-project/dolfin/issues/1065/cannot-store-symmetric-tensor-values
@@ -536,18 +645,6 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
         self.add_displacement_perturbation_subsol(
             degree=displacement_perturbation_degree)
         
-        if (self.w_solid_incompressibility):
-            if (solid_pressure_degree is None):
-                solid_pressure_degree = displacement_perturbation_degree-1
-            self.add_pressure_subsol(
-                degree=solid_pressure_degree)
-
-        # self.add_macroscopic_stress_lagrange_multiplier_subsol()
-
-        # self.add_deformed_total_volume_subsol()
-        # self.add_deformed_solid_volume_subsol()
-        # self.add_deformed_fluid_volume_subsol()
-
         if (porosity_degree is None):
             porosity_degree = displacement_perturbation_degree - 1
         self.add_surface_area_subsol()
@@ -556,6 +653,29 @@ class MicroPoroDarcyProblem(HyperelasticityProblem):
             degree=porosity_degree,
             init_val=porosity_init_val,
             init_fun=porosity_init_fun)
+        
+        
+        if (self.w_solid_incompressibility):
+            if (solid_pressure_degree is None):
+                solid_pressure_degree = displacement_perturbation_degree-1
+            self.add_pressure_subsol(
+                degree=solid_pressure_degree)
+        
+        if (self.w_pressure_balancing_gravity):
+            self.add_pressure_balancing_gravity_subsol()
+            self.add_gamma_subsol()
+            self.add_lmbda_subsol()
+            self.add_mu_subsol()
+            self.add_deformed_center_of_mass_subsol()
+        
+
+        # self.add_macroscopic_stress_lagrange_multiplier_subsol()
+
+        # self.add_deformed_total_volume_subsol()
+        # self.add_deformed_solid_volume_subsol()
+        # self.add_deformed_fluid_volume_subsol()
+
+
 
         ####
         # New porosity subsol
