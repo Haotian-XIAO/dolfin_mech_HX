@@ -135,6 +135,19 @@ def run_HollowBox_MicroPoroflow(
         porosity_fun.vector()[:] = numpy.random.uniform(low=0.4, high=0.6, size=porosity_fun.vector().size())
         poro_val = None
 
+    # ---------------- Macroscopic rotation ----------------- #
+    # If all off-diagonal components of U_bar are prescribed at every step,
+    # the macroscopic rotation is fixed by the kinematics: the symmetry
+    # penalty is not needed and would conflict with the prescribed U_bar.
+    _solid = (load_params or {}).get("solid", {})
+    _n_steps = step_params.get("n_steps", 1)
+    def _is_prescribed(i, j):
+        lst = _solid.get(f"U_bar_{i}{j}_lst",
+                         [_solid.get(f"U_bar_{i}{j}", None)] * _n_steps)
+        return all(v is not None for v in lst)
+    macroscopic_stretch_symmetry = not all(
+        _is_prescribed(i, j) for i in range(dim) for j in range(dim) if i != j)
+
     # ---------------------- Problem ------------------------- #
     problem = dmech.MicroPoroFlowHyperelasticityProblem(
         mesh=mesh,
@@ -149,7 +162,8 @@ def run_HollowBox_MicroPoroflow(
         flow_params=flow_params,
         skel_behavior=mat_params["skel"],
         bulk_behavior=mat_params["bulk"],
-        pore_behavior=mat_params["pore"])
+        pore_behavior=mat_params["pore"],
+        macroscopic_stretch_symmetry=macroscopic_stretch_symmetry)
     
     # -------------------- Time Step ------------------------- #
     n_steps = step_params.get("n_steps", 1)
